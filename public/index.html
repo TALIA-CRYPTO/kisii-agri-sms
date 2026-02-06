@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kisii AgriPrice Admin</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
+        h1 { color: #2c5f2d; }
+        .section { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        input { padding: 10px; margin: 5px; width: 150px; font-size: 16px; }
+        button { padding: 12px 24px; background: #2c5f2d; color: white; border: none; 
+                 border-radius: 5px; cursor: pointer; font-size: 16px; margin: 10px 5px; }
+        button:hover { background: #1d4220; }
+        .result { margin-top: 15px; padding: 10px; background: #fff; border-left: 4px solid #2c5f2d; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🌾 Kisii AgriPrice - Admin Panel</h1>
+    
+    <div class="section">
+        <h2>Update Market Prices</h2>
+        <label>Maize (KES/kg):</label>
+        <input type="number" id="maize" placeholder="45">
+        
+        <label>Beans (KES/kg):</label>
+        <input type="number" id="beans" placeholder="80">
+        
+        <label>Tomatoes (KES/kg):</label>
+        <input type="number" id="tomatoes" placeholder="60">
+        
+        <br><button onclick="updatePrices()">Update Prices</button>
+        <button onclick="loadPrices()">Load Current Prices</button>
+        <div id="price-result" class="result" style="display:none"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Register New Farmer</h2>
+        <label>Phone Number:</label>
+        <input type="text" id="phone" placeholder="+254712345678">
+        
+        <label>Crops (comma separated):</label>
+        <input type="text" id="crops" placeholder="maize,beans">
+        
+        <br><button onclick="registerFarmer()">Register Farmer</button>
+        <div id="register-result" class="result" style="display:none"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Send SMS to All Farmers</h2>
+        <button onclick="sendSMS()">Send Price Update SMS Now</button>
+        <button onclick="loadFarmers()">View Registered Farmers</button>
+        <div id="sms-result" class="result" style="display:none"></div>
+    </div>
+
+    <script>
+        async function updatePrices() {
+            const prices = {
+                maize: document.getElementById('maize').value,
+                beans: document.getElementById('beans').value,
+                tomatoes: document.getElementById('tomatoes').value
+            };
+            
+            const res = await fetch('/admin/prices', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(prices)
+            });
+            
+            const data = await res.json();
+            document.getElementById('price-result').style.display = 'block';
+            document.getElementById('price-result').innerHTML = 
+                `✅ Prices updated! Maize: ${data.prices.maize}, Beans: ${data.prices.beans}, Tomatoes: ${data.prices.tomatoes} KES/kg`;
+        }
+        
+        async function loadPrices() {
+            const res = await fetch('/admin/prices');
+            const data = await res.json();
+            document.getElementById('maize').value = data.maize;
+            document.getElementById('beans').value = data.beans;
+            document.getElementById('tomatoes').value = data.tomatoes;
+        }
+        
+        async function registerFarmer() {
+            const phone = document.getElementById('phone').value;
+            const crops = document.getElementById('crops').value.split(',');
+            
+            const res = await fetch('/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ phone, crops })
+            });
+            
+            const data = await res.json();
+            document.getElementById('register-result').style.display = 'block';
+            document.getElementById('register-result').innerHTML = 
+                `✅ Farmer registered! Total farmers: ${data.total}`;
+            document.getElementById('phone').value = '';
+            document.getElementById('crops').value = '';
+        }
+        
+        async function sendSMS() {
+            if (!confirm('Send SMS to all farmers now?')) return;
+            
+            document.getElementById('sms-result').innerHTML = '⏳ Sending...';
+            document.getElementById('sms-result').style.display = 'block';
+            
+            const res = await fetch('/send-sms', { method: 'POST' });
+            const data = await res.json();
+            
+            document.getElementById('sms-result').innerHTML = 
+                `✅ SMS sent to ${data.sent} farmers! Failed: ${data.failed}`;
+        }
+        
+        async function loadFarmers() {
+            const res = await fetch('/farmers');
+            const data = await res.json();
+            document.getElementById('sms-result').style.display = 'block';
+            document.getElementById('sms-result').innerHTML = 
+                `📊 Total registered farmers: ${data.count}`;
+        }
+        
+        // Load prices on page load
+        loadPrices();
+    </script>
+</body>
+</html>
