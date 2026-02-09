@@ -15,6 +15,34 @@
     </style>
 </head>
 <div class="section">
+    <h2>📊 SMS Logs</h2>
+    <button onclick="viewLogs()">View SMS History</button>
+    <div id="logs-result" class="result" style="display:none"></div>
+</div>
+
+<script>
+async function viewLogs() {
+    const res = await fetch('/admin/sms-logs');
+    const data = await res.json();
+    
+    document.getElementById('logs-result').style.display = 'block';
+    
+    if (data.total === 0) {
+        document.getElementById('logs-result').innerHTML = 'No SMS sent yet.';
+        return;
+    }
+    
+    let html = `<strong>Total SMS: ${data.total}</strong><br><br>`;
+    data.logs.slice(-10).reverse().forEach(log => {
+        const status = log.success ? '✅' : '❌';
+        html += `${status} ${log.phone} - ${new Date(log.timestamp).toLocaleString()}<br>`;
+        if (log.error) html += `   Error: ${log.error}<br>`;
+    });
+    
+    document.getElementById('logs-result').innerHTML = html;
+}
+</script>
+<div class="section">
         <h2>🧪 Public SMS Test</h2>
         <p>Anyone can test the SMS system. Enter your phone number to receive sample market prices.</p>
         
@@ -25,40 +53,52 @@
         <div id="test-result" class="result" style="display:none"></div>
     </div>
 
-    <script>
-        async function sendTestSMS() {
-            const phone = document.getElementById('test-phone').value;
-            
-            if (!phone.startsWith('+254')) {
-                alert('Phone number must start with +254');
-                return;
-            }
-            
-            document.getElementById('test-result').style.display = 'block';
-            document.getElementById('test-result').innerHTML = '⏳ Sending test SMS...';
-            
-            try {
-                const res = await fetch('/test-sms', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ phone })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    document.getElementById('test-result').innerHTML = 
-                        '✅ Test SMS sent successfully! Check your phone in 10-30 seconds.';
-                } else {
-                    document.getElementById('test-result').innerHTML = 
-                        '❌ Failed: ' + data.error;
-                }
-            } catch (error) {
-                document.getElementById('test-result').innerHTML = 
-                    '❌ Network error: ' + error.message;
-            }
+    <<script>
+async function sendTestSMS() {
+    const phone = document.getElementById('test-phone').value.trim();
+    
+    // Frontend validation
+    if (!phone) {
+        alert('Please enter a phone number');
+        return;
+    }
+    
+    if (!phone.startsWith('+254')) {
+        alert('Phone number must start with +254\nExample: +254712345678');
+        return;
+    }
+    
+    if (phone.length !== 13) {
+        alert('Invalid phone number length\nFormat: +254712345678 (13 characters)');
+        return;
+    }
+    
+    document.getElementById('test-result').style.display = 'block';
+    document.getElementById('test-result').innerHTML = '⏳ Sending test SMS...';
+    
+    try {
+        const res = await fetch('/test-sms', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ phone })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            document.getElementById('test-result').innerHTML = 
+                `✅ ${data.message}<br>Sent to: ${data.recipient}<br>Check your phone in 10-30 seconds.`;
+            document.getElementById('test-phone').value = ''; // Clear input
+        } else {
+            document.getElementById('test-result').innerHTML = 
+                '❌ ' + data.error;
         }
-    </script>
+    } catch (error) {
+        document.getElementById('test-result').innerHTML = 
+            '❌ Network error: ' + error.message;
+    }
+}
+</script>
 <body>
     <h1>🌾 Kisii AgriPrice - Admin Panel</h1>
     
