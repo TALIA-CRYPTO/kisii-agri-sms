@@ -2,6 +2,9 @@ const express = require('express');
 const AfricasTalking = require('africastalking');
 const fs = require('fs');
 
+const cors = require('cors');
+app.use(cors());
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -17,7 +20,14 @@ const sms = africastalking.SMS;
 
 // Data storage (simple JSON files)
 let farmers = [];
-let prices = { maize: 0, beans: 0, tomatoes: 0 };
+let prices = { 
+    maize: 0, 
+    beans: 0, 
+    tomatoes: 0, 
+    bananas: 0, 
+    potatoes: 0, 
+    avocados: 0 
+};
 
 // Load data if exists
 try {
@@ -58,9 +68,14 @@ app.get('/farmers', (req, res) => {
 });
 
 // Send SMS to all farmers
-app.post('/send-sms', async (req, res) => {
-    const today = new Date().toLocaleDateString('en-GB');
-    const message = `Kisii Sokoni (${today}):\nMaize: ${prices.maize} KES/kg\nBeans: ${prices.beans} KES/kg\nTomatoes: ${prices.tomatoes} KES/kg\n- AgriPrice Kisii`;
+const message = `Kisii Sokoni (${today}):
+Maize: ${prices.maize} KES/kg
+Beans: ${prices.beans} KES/kg
+Tomatoes: ${prices.tomatoes} KES/kg
+Bananas: ${prices.bananas} KES/kg
+Potatoes: ${prices.potatoes} KES/kg
+Avocados: ${prices.avocados} KES/piece
+- AgriPrice Kisii`;
     
     let sent = 0;
     let failed = 0;
