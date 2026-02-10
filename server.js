@@ -77,13 +77,13 @@ app.post('/test-sms', async (req, res) => {
         }
         
         const message = `TEST - Kisii AgriPrice (${today}):
-Maize: ${prices.maize || 0} KES/kg
-Beans: ${prices.beans || 0} KES/kg
-Tomatoes: ${prices.tomatoes || 0} KES/kg
-Bananas: ${prices.bananas || 0} KES/kg
-Potatoes: ${prices.potatoes || 0} KES/kg
-Avocados: ${prices.avocados || 0} KES/piece
-- Test SMS`;
+	Maize: ${prices.maize || 0} KES/kg
+	Beans: ${prices.beans || 0} KES/kg
+	Tomatoes: ${prices.tomatoes || 0} KES/kg
+	Bananas: ${prices.bananas || 0} KES/kg
+	Potatoes: ${prices.potatoes || 0} KES/kg
+	Avocados: ${prices.avocados || 0} KES/piece
+	- Test SMS`;
         
         const result = await sms.send({ 
             to: [phone], 
@@ -208,14 +208,15 @@ Avocados: ${prices.avocados} KES/piece
     
     for (let farmer of farmers) {
         try {
-            await sms.send({ to: [farmer.phone], message });
-            sent++;
-        } catch (error) {
-            failed++;
-            console.log('Failed to send to:', farmer.phone);
-        }
-    }
-    
+    await sms.send({ to: [farmer.phone], message });
+    sent++;
+    console.log('SUCCESS: Sent to', farmer.phone);
+} catch (error) {
+    failed++;
+    console.log('FAILED to send to:', farmer.phone);
+    console.log('REASON:', error.message);
+    console.log('FULL ERROR:', JSON.stringify(error, null, 2));
+}    
     res.json({ sent, failed, total: farmers.length });
 });
 // Add this route BEFORE app.listen()
