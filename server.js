@@ -2,6 +2,9 @@ const express = require('express');
 const AfricasTalking = require('africastalking');
 const fs = require('fs');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const session = require('express-session');
+
 
 const app = express();
 app.use(cors());
@@ -9,6 +12,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+app.use(session({
+    secret: 'kisii-agri-secret-2026',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+}));
 // Africa's Talking setup
 const africastalking = AfricasTalking({
     apiKey: process.env.API_KEY,
@@ -54,6 +63,28 @@ function logSMS(phone, success, errorMsg = null) {
     logs.push(logEntry);
     fs.writeFileSync('sms-logs.json', JSON.stringify(logs, null, 2));
 }
+// Login route
+app.post('/admin/login', (req, res) => {
+    const { username, password } = req.body;
+
+    if (username === ADMIN_USERNAME && bcrypt.compareSync(password, ADMIN_PASSWORD_HASH)) {
+        req.session.isAdmin = true;
+        res.json({ success: true, message: 'Login successful' });
+    } else {
+        res.status(401).json({ success: false, error: 'Invalid credentials' });
+    }
+});
+
+// Logout route
+app.post('/admin/logout', (req, res) => {
+    req.session.destroy();
+    res.json({ success: true, message: 'Logged out' });
+});
+
+// Check auth status
+app.get('/admin/check-auth', (req, res) => {
+    res.json({ isAuthenticated: !!req.session.isAdmin });
+});
 
 // ==================
 // ROUTES
@@ -70,12 +101,24 @@ app.get('/admin/prices', (req, res) => {
 });
 
 // Update prices
-app.post('/admin/prices', (req, res) => {
+app.post('/admin/prices', requireAuth, (req, res) => {
     prices = req.body;
     fs.writeFileSync('prices.json', JSON.stringify(prices, null, 2));
     console.log('Prices updated:', prices);
     res.json({ success: true, prices });
 });
+// Admin credentials 
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD_HASH = bcrypt.hashSync('my very first', 10);
+
+// Middleware to check if admin is logged in
+function requireAuth(req, res, next) {
+    if (req.session.isAdmin) {
+        next();
+    } else {
+        res.status(401).json({ error: 'Unauthorized. Please login first.' });
+    }
+}
 
 // Register farmer
 app.post('/register', (req, res) => {
@@ -109,7 +152,7 @@ app.get('/farmers', (req, res) => {
 });
 
 // Send SMS to all farmers
-app.post('/send-sms', async (req, res) => {
+app.post('/send-sms', requireAuth, async (req, res) => {
     const today = new Date().toLocaleDateString('en-GB');
     const message = `Kisii Sokoni (${today}):
 Maize: ${prices.maize} KES/kg
@@ -200,7 +243,7 @@ Avocados: ${prices.avocados || 15} KES/piece
 });
 
 // SMS Logs
-app.get('/admin/sms-logs', (req, res) => {
+app.get('/admin/sms-logs', requireAuth, (req, res) => {
     try {
         const logs = JSON.parse(fs.readFileSync('sms-logs.json', 'utf8'));
         res.json({ logs, total: logs.length });

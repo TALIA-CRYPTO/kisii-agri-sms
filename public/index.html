@@ -99,7 +99,39 @@ async function sendTestSMS() {
     }
 }
 </script>
+
 <body>
+<div id="authCheck" style="display:none;">
+    <p>Checking authentication...</p>
+</div>
+
+<div id="logoutSection" style="text-align: right; padding: 10px;">
+    <button onclick="logout()" style="background: #d32f2f;">Logout</button>
+</div>
+
+<script>
+// Check if user is authenticated
+async function checkAuth() {
+    try {
+        const res = await fetch('/admin/check-auth');
+        const data = await res.json();
+        
+        if (!data.isAuthenticated) {
+            window.location.href = '/login.html';
+        }
+    } catch (error) {
+        window.location.href = '/login.html';
+    }
+}
+
+async function logout() {
+    await fetch('/admin/logout', { method: 'POST' });
+    window.location.href = '/login.html';
+}
+
+// Check auth on page load
+checkAuth();
+</script>
     <h1>🌾 Kisii AgriPrice - Admin Panel</h1>
     
     <div class="section">
