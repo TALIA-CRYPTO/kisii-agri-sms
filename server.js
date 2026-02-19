@@ -5,19 +5,20 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 
-
 const app = express();
 
+// Session setup
 app.use(session({
     secret: 'kisii-agri-secret-2026-change-this',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000  // 24 hours
-		httpOnly: true,
-       		 secure: false // Set to true if using HTTPS
-	
-} 
+    cookie: { 
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        httpOnly: true,
+        secure: false
+    }
 }));
+
 app.use(cors({
     credentials: true,
     origin: true
@@ -25,6 +26,20 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
+
+// Admin credentials (MUST be before routes)
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD_HASH = bcrypt.hashSync('my very first', 10);
+
+// Auth middleware (MUST be before routes)
+function requireAuth(req, res, next) {
+    console.log('Auth check - isAdmin:', req.session.isAdmin);
+    if (req.session && req.session.isAdmin) {
+        next();
+    } else {
+        res.status(401).json({ error: 'Unauthorized' });
+    }
+}
 
 // Africa's Talking setup
 const africastalking = AfricasTalking({
@@ -71,78 +86,54 @@ function logSMS(phone, success, errorMsg = null) {
     logs.push(logEntry);
     fs.writeFileSync('sms-logs.json', JSON.stringify(logs, null, 2));
 }
-// Login route
+
+// ==================
+// AUTH ROUTES
+// ==================
+
 app.post('/admin/login', (req, res) => {
     const { username, password } = req.body;
+    
+    console.log('Login attempt:', username);
 
     if (username === ADMIN_USERNAME && bcrypt.compareSync(password, ADMIN_PASSWORD_HASH)) {
         req.session.isAdmin = true;
-	req.session.save((err) => {
+        req.session.save((err) => {
             if (err) {
                 console.error('Session save error:', err);
                 return res.status(500).json({ success: false, error: 'Session error' });
             }
             console.log('Login successful, session:', req.session);
-        res.json({ success: true, message: 'Login successful' });
+            res.json({ success: true, message: 'Login successful' });
+        });
     } else {
-	console.log('Invalid credentials');
+        console.log('Invalid credentials');
         res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 });
-// Check auth status
+
 app.get('/admin/check-auth', (req, res) => {
-	console.log('Check auth - session:', req.session);
+    console.log('Check auth - session:', req.session);
     res.json({ isAuthenticated: !!req.session.isAdmin });
 });
-// Logout route
+
 app.post('/admin/logout', (req, res) => {
     req.session.destroy();
     res.json({ success: true, message: 'Logged out' });
 });
 
-
 // ==================
-// ROUTES
+// PUBLIC ROUTES
 // ==================
 
-// Home page
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
 
-// Get prices
 app.get('/admin/prices', (req, res) => {
     res.json(prices);
 });
 
-// Update prices
-app.post('/admin/prices', requireAuth, (req, res) => {
-    prices = req.body;
-    fs.writeFileSync('prices.json', JSON.stringify(prices, null, 2));
-    console.log('Prices updated:', prices);
-    res.json({ success: true, prices });
-});
-app.post('/send-sms', requireAuth, async (req, res) => {
-    // ... your SMS code
-});
-
-app.get('/admin/sms-logs', requireAuth, (req, res) => {
-    // ... your logs code
-});
-// Admin credentials 
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD_HASH = bcrypt.hashSync('my very first', 10);
-
-// Middleware to check if admin is logged in
-function requireAuth(req, res, next) {
-    console.log('Auth check - isAdmin:', req.session.isAdmin); // Debug log
-    if (req.session && req.session.isAdmin) {
-        next();
-    } else {
-        res.status(401).json({ error: 'Unauthorized' });
-    }
-}
-// Register farmer
 app.post('/register', (req, res) => {
     const { phone, crops } = req.body;
 
@@ -153,7 +144,6 @@ app.post('/register', (req, res) => {
         });
     }
 
-    // Check duplicate
     const exists = farmers.find(f => f.phone === phone);
     if (exists) {
         return res.status(400).json({
@@ -168,43 +158,10 @@ app.post('/register', (req, res) => {
     res.json({ success: true, total: farmers.length });
 });
 
-// Get farmers
 app.get('/farmers', (req, res) => {
     res.json({ count: farmers.length, farmers });
 });
 
-// Send SMS to all farmers
-app.post('/send-sms', requireAuth, async (req, res) => {
-    const today = new Date().toLocaleDateString('en-GB');
-    const message = `Kisii Sokoni (${today}):
-Maize: ${prices.maize} KES/kg
-Beans: ${prices.beans} KES/kg
-Tomatoes: ${prices.tomatoes} KES/kg
-Bananas: ${prices.bananas} KES/kg
-Potatoes: ${prices.potatoes} KES/kg
-Avocados: ${prices.avocados} KES/piece
-- AgriPrice Kisii`;
-
-    let sent = 0;
-    let failed = 0;
-
-    for (let farmer of farmers) {
-        try {
-            await sms.send({ to: [farmer.phone], message });
-            sent++;
-            logSMS(farmer.phone, true);
-            console.log('SUCCESS: Sent to', farmer.phone);
-        } catch (error) {
-            failed++;
-            logSMS(farmer.phone, false, error.message);
-            console.log('FAILED:', farmer.phone, '| REASON:', error.message);
-        }
-    }
-
-    res.json({ sent, failed, total: farmers.length });
-});
-
-// Test SMS (public)
 app.post('/test-sms', async (req, res) => {
     const { phone } = req.body;
 
@@ -242,7 +199,6 @@ Avocados: ${prices.avocados || 15} KES/piece
 
         const result = await sms.send({ to: [phone], message });
         console.log('Test SMS sent to:', phone);
-        console.log('Result:', JSON.stringify(result));
 
         logSMS(phone, true);
         res.json({
@@ -252,9 +208,7 @@ Avocados: ${prices.avocados || 15} KES/piece
         });
 
     } catch (error) {
-        console.log('Test SMS FAILED:', phone);
-        console.log('REASON:', error.message);
-        console.log('FULL ERROR:', JSON.stringify(error));
+        console.log('Test SMS FAILED:', phone, '| REASON:', error.message);
 
         logSMS(phone, false, error.message);
         res.status(500).json({
@@ -264,7 +218,47 @@ Avocados: ${prices.avocados || 15} KES/piece
     }
 });
 
-// SMS Logs
+// ==================
+// PROTECTED ROUTES
+// ==================
+
+app.post('/admin/prices', requireAuth, (req, res) => {
+    prices = req.body;
+    fs.writeFileSync('prices.json', JSON.stringify(prices, null, 2));
+    console.log('Prices updated:', prices);
+    res.json({ success: true, prices });
+});
+
+app.post('/send-sms', requireAuth, async (req, res) => {
+    const today = new Date().toLocaleDateString('en-GB');
+    const message = `Kisii Sokoni (${today}):
+Maize: ${prices.maize} KES/kg
+Beans: ${prices.beans} KES/kg
+Tomatoes: ${prices.tomatoes} KES/kg
+Bananas: ${prices.bananas} KES/kg
+Potatoes: ${prices.potatoes} KES/kg
+Avocados: ${prices.avocados} KES/piece
+- AgriPrice Kisii`;
+
+    let sent = 0;
+    let failed = 0;
+
+    for (let farmer of farmers) {
+        try {
+            await sms.send({ to: [farmer.phone], message });
+            sent++;
+            logSMS(farmer.phone, true);
+            console.log('SUCCESS: Sent to', farmer.phone);
+        } catch (error) {
+            failed++;
+            logSMS(farmer.phone, false, error.message);
+            console.log('FAILED:', farmer.phone, '| REASON:', error.message);
+        }
+    }
+
+    res.json({ sent, failed, total: farmers.length });
+});
+
 app.get('/admin/sms-logs', requireAuth, (req, res) => {
     try {
         const logs = JSON.parse(fs.readFileSync('sms-logs.json', 'utf8'));
