@@ -7,17 +7,25 @@ const session = require('express-session');
 
 
 const app = express();
-app.use(cors());
+
+app.use(session({
+    secret: 'kisii-agri-secret-2026-change-this',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000  // 24 hours
+		httpOnly: true,
+       		 secure: false // Set to true if using HTTPS
+	
+} 
+}));
+app.use(cors({
+    credentials: true,
+    origin: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-app.use(session({
-    secret: 'kisii-agri-secret-2026',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 hours
-}));
 // Africa's Talking setup
 const africastalking = AfricasTalking({
     apiKey: process.env.API_KEY,
@@ -69,22 +77,29 @@ app.post('/admin/login', (req, res) => {
 
     if (username === ADMIN_USERNAME && bcrypt.compareSync(password, ADMIN_PASSWORD_HASH)) {
         req.session.isAdmin = true;
+	req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).json({ success: false, error: 'Session error' });
+            }
+            console.log('Login successful, session:', req.session);
         res.json({ success: true, message: 'Login successful' });
     } else {
+	console.log('Invalid credentials');
         res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 });
-
+// Check auth status
+app.get('/admin/check-auth', (req, res) => {
+	console.log('Check auth - session:', req.session);
+    res.json({ isAuthenticated: !!req.session.isAdmin });
+});
 // Logout route
 app.post('/admin/logout', (req, res) => {
     req.session.destroy();
     res.json({ success: true, message: 'Logged out' });
 });
 
-// Check auth status
-app.get('/admin/check-auth', (req, res) => {
-    res.json({ isAuthenticated: !!req.session.isAdmin });
-});
 
 // ==================
 // ROUTES
@@ -107,19 +122,26 @@ app.post('/admin/prices', requireAuth, (req, res) => {
     console.log('Prices updated:', prices);
     res.json({ success: true, prices });
 });
+app.post('/send-sms', requireAuth, async (req, res) => {
+    // ... your SMS code
+});
+
+app.get('/admin/sms-logs', requireAuth, (req, res) => {
+    // ... your logs code
+});
 // Admin credentials 
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD_HASH = bcrypt.hashSync('my very first', 10);
 
 // Middleware to check if admin is logged in
 function requireAuth(req, res, next) {
-    if (req.session.isAdmin) {
+    console.log('Auth check - isAdmin:', req.session.isAdmin); // Debug log
+    if (req.session && req.session.isAdmin) {
         next();
     } else {
-        res.status(401).json({ error: 'Unauthorized. Please login first.' });
+        res.status(401).json({ error: 'Unauthorized' });
     }
 }
-
 // Register farmer
 app.post('/register', (req, res) => {
     const { phone, crops } = req.body;
