@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kisii AgriPrice - Market Prices via SMS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e5128 0%, #2d6a4f 50%, #40916c 100%);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e5128;
+        }
+
+        .logo span {
+            font-size: 36px;
+            margin-right: 10px;
+        }
+
+        .nav-btn {
+            background: #1e5128;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover {
+            background: #2d6a4f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 20px;
+            color: white;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .hero p {
+            font-size: 22px;
+            margin-bottom: 40px;
+            opacity: 0.95;
+        }
+
+        /* Features Section */
+        .features {
+            background: white;
+            padding: 60px 20px;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 50px;
+            color: #1e5128;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #2d6a4f;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            color: #1e5128;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* Test SMS Section */
+        .test-sms {
+            background: linear-gradient(135deg, #2d6a4f 0%, #1e5128 100%);
+            padding: 60px 20px;
+            color: white;
+        }
+
+        .test-sms h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .test-form {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .test-form h3 {
+            color: #1e5128;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2d6a4f;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: #1e5128;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #2d6a4f;
+            transform: translateY(-2px);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Footer */
+        footer {
+            background: #1a1a1a;
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        footer p {
+            margin-bottom: 10px;
+        }
+
+        footer a {
+            color: #52b788;
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .hero p {
+                font-size: 18px;
+            }
+
+            .features h2,
+            .test-sms h2 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">
+                    <span>🌾</span>
+                    <div>Kisii AgriPrice</div>
+                </div>
+                <a href="/login.html" class="nav-btn">Admin Login</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>Know Your Market Prices</h1>
+            <p>Daily SMS updates with Kisii local market prices - delivered to any phone</p>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2>Why Kisii AgriPrice?</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Works on Any Phone</h3>
+                    <p>No smartphone needed. Receive prices via simple SMS on any mobile phone.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📍</div>
+                    <h3>Kisii Local Prices</h3>
+                    <p>Actual prices from Kisii markets - not generic Kenya-wide data.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⏰</div>
+                    <h3>Daily Updates</h3>
+                    <p>Fresh market prices delivered every morning before you sell.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Affordable</h3>
+                    <p>50-100 KES/month - less than 1% of a single sale.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌽</div>
+                    <h3>6 Key Crops</h3>
+                    <p>Maize, beans, tomatoes, bananas, potatoes, and avocados.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">✅</div>
+                    <h3>Simple Registration</h3>
+                    <p>Just your phone number and crops you grow. No app install needed.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Test SMS Section -->
+    <section class="test-sms">
+        <div class="container">
+            <h2>Try It Free - Get Sample Prices</h2>
+            <div class="test-form">
+                <h3>Test SMS Service</h3>
+                <form id="testForm">
+                    <div class="form-group">
+                        <label for="phone">Your Phone Number</label>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            placeholder="+254712345678" 
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="submit-btn">Send Me Sample Prices</button>
+                    <div id="result" class="result"></div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p><strong>Kisii AgriPrice</strong> - Empowering Farmers with Market Information</p>
+            <p>Contact: <a href="mailto:info@kisiagriprice.com">info@kisiagriprice.com</a></p>
+            <p>&copy; 2026 Kisii AgriPrice. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const phone = document.getElementById('phone').value.trim();
+            const resultDiv = document.getElementById('result');
+            const submitBtn = e.target.querySelector('.submit-btn');
+
+            // Validation
+            if (!phone.startsWith('+254')) {
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = 'Phone number must start with +254';
+                return;
+            }
+
+            if (phone.length !== 13) {
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = 'Invalid phone number length. Format: +254712345678';
+                return;
+            }
+
+            // Show loading
+            submitBtn.textContent = 'Sending...';
+            submitBtn.disabled = true;
+
+            try {
+                const res = await fetch('/test-sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = '✅ Sample prices sent! Check your phone in 10-30 seconds.';
+                    document.getElementById('phone').value = '';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '❌ ' + data.error;
+                }
+
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ Network error. Please try again.';
+            } finally {
+                resultDiv.style.display = 'block';
+                submitBtn.textContent = 'Send Me Sample Prices';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

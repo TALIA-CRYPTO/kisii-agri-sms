@@ -125,8 +125,11 @@ app.post('/admin/logout', (req, res) => {
 // ==================
 // PUBLIC ROUTES
 // ==================
-
 app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/home.html');
+});
+
+app.get('/admin', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
 

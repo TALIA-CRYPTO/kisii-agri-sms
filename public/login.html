@@ -88,7 +88,7 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    window.location.href = '/';
+                    window.location.href = '/admin';
                 } else {
                     errorDiv.style.display = 'block';
                     errorDiv.textContent = data.error || 'Invalid credentials';
