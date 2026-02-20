@@ -134,6 +134,28 @@ async function logout() {
 // Check auth on page load
 checkAuth();
 </script>
+<!-- Stats Dashboard -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0;">
+    <div style="background: linear-gradient(135deg, #2c5f2d, #4a9c4f); color: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        <div style="font-size: 36px; font-weight: bold;" id="statFarmers">0</div>
+        <div style="margin-top: 5px; opacity: 0.9;">Total Farmers</div>
+    </div>
+    
+    <div style="background: linear-gradient(135deg, #1976d2, #42a5f5); color: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        <div style="font-size: 36px; font-weight: bold;" id="statSMS">0</div>
+        <div style="margin-top: 5px; opacity: 0.9;">SMS Sent</div>
+    </div>
+    
+    <div style="background: linear-gradient(135deg, #f57c00, #ffa726); color: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        <div style="font-size: 36px; font-weight: bold;" id="statSuccess">0%</div>
+        <div style="margin-top: 5px; opacity: 0.9;">Success Rate</div>
+    </div>
+    
+    <div style="background: linear-gradient(135deg, #7b1fa2, #ab47bc); color: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+        <div style="font-size: 18px; font-weight: bold;" id="statLastUpdate">Never</div>
+        <div style="margin-top: 5px; opacity: 0.9;">Last Price Update</div>
+    </div>
+</div>
     <h1>🌾 Kisii AgriPrice - Admin Panel</h1>
     
     <div class="section">
@@ -257,5 +279,61 @@ checkAuth();
         // Load prices on page load
         loadPrices();
     </script>
+<script>
+// Load stats on page load
+async function loadStats() {
+    try {
+        // Get farmers count
+        const farmersRes = await fetch('/farmers');
+        const farmersData = await farmersRes.json();
+        document.getElementById('statFarmers').textContent = farmersData.count || 0;
+        
+        // Get SMS logs
+        const logsRes = await fetch('/admin/sms-logs', {
+            credentials: 'include'
+        });
+        const logsData = await logsRes.json();
+        
+        const totalSMS = logsData.total || 0;
+        document.getElementById('statSMS').textContent = totalSMS;
+        
+        // Calculate success rate
+        if (totalSMS > 0) {
+            const successful = logsData.logs.filter(log => log.success).length;
+            const successRate = Math.round((successful / totalSMS) * 100);
+            document.getElementById('statSuccess').textContent = successRate + '%';
+        }
+        
+        // Get last price update from prices
+        const pricesRes = await fetch('/admin/prices');
+        const pricesData = await pricesRes.json();
+        
+        // Check if prices.json has lastUpdated field
+        if (pricesData.lastUpdated) {
+            const date = new Date(pricesData.lastUpdated);
+            const timeAgo = getTimeAgo(date);
+            document.getElementById('statLastUpdate').textContent = timeAgo;
+        }
+        
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return Math.floor(seconds / 60) + ' mins ago';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
+    return Math.floor(seconds / 86400) + ' days ago';
+}
+
+// Load stats when page loads (after auth check)
+checkAuth().then(() => {
+    loadStats();
+    loadPrices();
+});
+</script>
 </body>
 </html>

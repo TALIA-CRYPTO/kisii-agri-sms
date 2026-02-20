@@ -248,11 +248,11 @@ Avocados: ${prices.avocados || 15} KES/piece
 
 app.post('/admin/prices', requireAuth, (req, res) => {
     prices = req.body;
+    prices.lastUpdated = new Date().toISOString(); // Add timestamp
     fs.writeFileSync('prices.json', JSON.stringify(prices, null, 2));
     console.log('Prices updated:', prices);
     res.json({ success: true, prices });
 });
-
 app.post('/send-sms', requireAuth, async (req, res) => {
     const today = new Date().toLocaleDateString('en-GB');
     const message = `Kisii Sokoni (${today}):
