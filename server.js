@@ -165,6 +165,27 @@ app.get('/farmers', (req, res) => {
     res.json({ count: farmers.length, farmers });
 });
 
+// Delete farmer (protected)
+app.post('/delete-farmer', requireAuth, (req, res) => {
+    const { phone } = req.body;
+
+    const index = farmers.findIndex(f => f.phone === phone);
+    
+    if (index === -1) {
+        return res.status(404).json({
+            success: false,
+            error: 'Farmer not found'
+        });
+    }
+
+    farmers.splice(index, 1);
+    fs.writeFileSync('farmers.json', JSON.stringify(farmers, null, 2));
+    
+    console.log('Farmer deleted:', phone);
+    res.json({ success: true, total: farmers.length });
+});
+
+
 app.post('/test-sms', async (req, res) => {
     const { phone } = req.body;
 

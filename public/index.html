@@ -105,10 +105,12 @@ async function sendTestSMS() {
     <p>Checking authentication...</p>
 </div>
 
-<div id="logoutSection" style="text-align: right; padding: 10px;">
-    <button onclick="logout()" style="background: #d32f2f;">Logout</button>
+<div id="logoutSection" style="text-align: right; padding: 10px; background: #f5f5f5;">
+    <a href="/farmers.html" style="background: #2c5f2d; color: white; padding: 8px 16px; border-radius: 5px; text-decoration: none; margin-right: 10px;">
+        👥 Manage Farmers
+    </a>
+    <button onclick="logout()" style="background: #d32f2f; color: white; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">Logout</button>
 </div>
-
 <script>
 // Check if user is authenticated
 async function checkAuth() {
