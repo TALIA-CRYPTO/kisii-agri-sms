@@ -367,21 +367,39 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                const name = farmer.name || 'N/A';
+                
+                // Handle missing name
+                const name = farmer.name || '(No name)';
+                
+                // Handle crops - filter out empty strings
+                let cropsDisplay = 'N/A';
+                if (farmer.crops) {
+                    const cropsList = Array.isArray(farmer.crops) ? farmer.crops : farmer.crops.split(',');
+                    const validCrops = cropsList.filter(c => c && c.trim());
+                    cropsDisplay = validCrops.length > 0 ? validCrops.join(', ') : 'N/A';
+                }
+                
+                // Escape quotes in JSON for onclick
+                const farmerJson = JSON.stringify(farmer).replace(/"/g, '&quot;');
                 
                 html += `
                     <tr>
-                       <td>
-   			 <button class="btn btn-info" onclick='viewDetails(${JSON.stringify(farmer)})'>
-     			   👁️ View
-   				 </button>
-   				 <button class="btn" style="background: #f57c00; padding: 6px 12px; margin-left: 5px;" 						onclick='editFarmer(${JSON.stringify(farmer)})'>
-       					 ✏️ Edit
-   				 </button>
-   				 <button class="delete-btn" onclick="deleteFarmer('${farmer.phone}')">
-       					 🗑️ Delete
-    				</button>
-			</td>
+                        <td>${index + 1}</td>
+                        <td><strong>${name}</strong></td>
+                        <td>${farmer.phone}</td>
+                        <td>${cropsDisplay}</td>
+                        <td>${date} ${time}</td>
+                        <td>
+                            <button class="btn btn-info" onclick='viewDetails(${farmerJson})'>
+                                👁️ View
+                            </button>
+                            <button class="btn" style="background: #f57c00; padding: 6px 12px; margin-left: 5px;" 					onclick='editFarmer(${farmerJson})'>
+                                ✏️ Edit
+                            </button>
+                            <button class="delete-btn" onclick="deleteFarmer('${farmer.phone}')">
+                                🗑️ Delete
+                            </button>
+                        </td>
                     </tr>
                 `;
             });
@@ -389,7 +407,6 @@
             html += '</tbody></table>';
             tableDiv.innerHTML = html;
         }
-
         function viewDetails(farmer) {
             const date = new Date(farmer.registered).toLocaleString('en-GB');
             const crops = Array.isArray(farmer.crops) ? farmer.crops.join(', ') : farmer.crops;
