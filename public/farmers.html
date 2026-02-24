@@ -33,15 +33,32 @@
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+        .stat-card.active {
+            background: #2c5f2d;
+            color: white;
         }
         .stat-number {
             font-size: 36px;
             font-weight: bold;
             color: #2c5f2d;
         }
+        .stat-card.active .stat-number {
+            color: white;
+        }
         .stat-label {
             color: #666;
             margin-top: 5px;
+        }
+        .stat-card.active .stat-label {
+            color: white;
+            opacity: 0.9;
         }
         .btn {
             padding: 10px 20px;
@@ -60,6 +77,14 @@
         }
         .btn-danger:hover {
             background: #b71c1c;
+        }
+        .btn-info {
+            background: #1976d2;
+            font-size: 14px;
+            padding: 6px 12px;
+        }
+        .btn-info:hover {
+            background: #1565c0;
         }
         table {
             width: 100%;
@@ -90,6 +115,7 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
+            margin-left: 5px;
         }
         .delete-btn:hover {
             background: #b71c1c;
@@ -111,6 +137,73 @@
             border-radius: 5px;
             font-size: 16px;
         }
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #2c5f2d;
+            padding-bottom: 10px;
+        }
+        .close {
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+        }
+        .close:hover {
+            color: #333;
+        }
+        .detail-row {
+            display: flex;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-label {
+            font-weight: bold;
+            width: 150px;
+            color: #2c5f2d;
+        }
+        .detail-value {
+            flex: 1;
+            color: #333;
+        }
+        .filter-badge {
+            display: inline-block;
+            background: #2c5f2d;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .filter-badge button {
+            background: none;
+            border: none;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -123,28 +216,48 @@
     </div>
 
     <div class="stats">
-        <div class="stat-card">
+        <div class="stat-card" onclick="filterByAll()">
             <div class="stat-number" id="totalFarmers">0</div>
             <div class="stat-label">Total Farmers</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="filterByToday()">
             <div class="stat-number" id="todayRegistrations">0</div>
             <div class="stat-label">Registered Today</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="showCropFilter()">
             <div class="stat-number" id="uniqueCrops">0</div>
             <div class="stat-label">Unique Crops</div>
         </div>
     </div>
 
+    <div id="filterBadge" style="display: none;">
+        <span class="filter-badge">
+            <span id="filterText"></span>
+            <button onclick="clearFilter()">✕</button>
+        </span>
+    </div>
+
     <div class="search-box">
-        <input type="text" id="searchInput" placeholder="🔍 Search by phone number or crops..." onkeyup="filterFarmers()">
+        <input type="text" id="searchInput" placeholder="🔍 Search by name, phone number or crops..." onkeyup="applyFilters()">
     </div>
 
     <div id="farmersTable"></div>
 
+    <!-- Modal for Farmer Details -->
+    <div id="farmerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Farmer Details</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
     <script>
         let allFarmers = [];
+        let currentFilter = 'all';
+        let selectedCrop = null;
 
         // Check auth
         (async function() {
@@ -181,7 +294,7 @@
                 const data = await res.json();
                 
                 allFarmers = data.farmers || [];
-                displayFarmers(allFarmers);
+                applyFilters();
                 updateStats(allFarmers);
                 
             } catch (error) {
@@ -191,11 +304,45 @@
             }
         }
 
+        function applyFilters() {
+            let filtered = allFarmers;
+
+            // Apply filter type
+            if (currentFilter === 'today') {
+                const today = new Date().toDateString();
+                filtered = filtered.filter(f => 
+                    new Date(f.registered).toDateString() === today
+                );
+            } else if (currentFilter === 'crop' && selectedCrop) {
+                filtered = filtered.filter(f => {
+                    const crops = Array.isArray(f.crops) ? f.crops : f.crops.split(',');
+                    return crops.some(c => c.trim().toLowerCase() === selectedCrop.toLowerCase());
+                });
+            }
+
+            // Apply search
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            if (search) {
+                filtered = filtered.filter(farmer => {
+                    const name = (farmer.name || '').toLowerCase();
+                    const phone = farmer.phone.toLowerCase();
+                    const crops = Array.isArray(farmer.crops) 
+                        ? farmer.crops.join(' ').toLowerCase()
+                        : farmer.crops.toLowerCase();
+                    
+                    return name.includes(search) || phone.includes(search) || crops.includes(search);
+                });
+            }
+
+            displayFarmers(filtered);
+            updateActiveCard();
+        }
+
         function displayFarmers(farmers) {
             const tableDiv = document.getElementById('farmersTable');
             
             if (farmers.length === 0) {
-                tableDiv.innerHTML = '<div class="no-data">No farmers registered yet</div>';
+                tableDiv.innerHTML = '<div class="no-data">No farmers found</div>';
                 return;
             }
 
@@ -204,6 +351,7 @@
                     <thead>
                         <tr>
                             <th>#</th>
+                            <th>Name</th>
                             <th>Phone Number</th>
                             <th>Crops</th>
                             <th>Registered</th>
@@ -219,14 +367,19 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
+                const name = farmer.name || 'N/A';
                 
                 html += `
                     <tr>
                         <td>${index + 1}</td>
-                        <td><strong>${farmer.phone}</strong></td>
+                        <td><strong>${name}</strong></td>
+                        <td>${farmer.phone}</td>
                         <td>${Array.isArray(farmer.crops) ? farmer.crops.join(', ') : farmer.crops}</td>
                         <td>${date} ${time}</td>
                         <td>
+                            <button class="btn btn-info" onclick='viewDetails(${JSON.stringify(farmer)})'>
+                                👁️ View
+                            </button>
                             <button class="delete-btn" onclick="deleteFarmer('${farmer.phone}')">
                                 🗑️ Delete
                             </button>
@@ -239,18 +392,54 @@
             tableDiv.innerHTML = html;
         }
 
+        function viewDetails(farmer) {
+            const date = new Date(farmer.registered).toLocaleString('en-GB');
+            const crops = Array.isArray(farmer.crops) ? farmer.crops.join(', ') : farmer.crops;
+            
+            const html = `
+                <div class="detail-row">
+                    <div class="detail-label">Name:</div>
+                    <div class="detail-value">${farmer.name || 'N/A'}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Phone Number:</div>
+                    <div class="detail-value">${farmer.phone}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Crops Grown:</div>
+                    <div class="detail-value">${crops}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Registered:</div>
+                    <div class="detail-value">${date}</div>
+                </div>
+            `;
+            
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('farmerModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('farmerModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('farmerModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
         function updateStats(farmers) {
-            // Total farmers
             document.getElementById('totalFarmers').textContent = farmers.length;
 
-            // Registered today
             const today = new Date().toDateString();
             const todayCount = farmers.filter(f => 
                 new Date(f.registered).toDateString() === today
             ).length;
             document.getElementById('todayRegistrations').textContent = todayCount;
 
-            // Unique crops
             const allCrops = new Set();
             farmers.forEach(f => {
                 const crops = Array.isArray(f.crops) ? f.crops : f.crops.split(',');
@@ -259,28 +448,60 @@
             document.getElementById('uniqueCrops').textContent = allCrops.size;
         }
 
-        function filterFarmers() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            
-            if (!search) {
-                displayFarmers(allFarmers);
-                return;
-            }
+        function filterByAll() {
+            currentFilter = 'all';
+            selectedCrop = null;
+            document.getElementById('filterBadge').style.display = 'none';
+            applyFilters();
+        }
 
-            const filtered = allFarmers.filter(farmer => {
-                const phone = farmer.phone.toLowerCase();
-                const crops = Array.isArray(farmer.crops) 
-                    ? farmer.crops.join(' ').toLowerCase()
-                    : farmer.crops.toLowerCase();
-                
-                return phone.includes(search) || crops.includes(search);
+        function filterByToday() {
+            currentFilter = 'today';
+            selectedCrop = null;
+            document.getElementById('filterText').textContent = 'Registered Today';
+            document.getElementById('filterBadge').style.display = 'block';
+            applyFilters();
+        }
+
+        function showCropFilter() {
+            const crops = new Set();
+            allFarmers.forEach(f => {
+                const farmerCrops = Array.isArray(f.crops) ? f.crops : f.crops.split(',');
+                farmerCrops.forEach(crop => crops.add(crop.trim()));
             });
 
-            displayFarmers(filtered);
+            const cropList = Array.from(crops).join(', ');
+            const crop = prompt('Enter crop to filter by:\n\nAvailable: ' + cropList);
+            
+            if (crop) {
+                currentFilter = 'crop';
+                selectedCrop = crop.trim();
+                document.getElementById('filterText').textContent = `Crop: ${selectedCrop}`;
+                document.getElementById('filterBadge').style.display = 'block';
+                applyFilters();
+            }
+        }
+
+        function clearFilter() {
+            filterByAll();
+        }
+
+        function updateActiveCard() {
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.classList.remove('active');
+            });
+
+            if (currentFilter === 'today') {
+                document.querySelectorAll('.stat-card')[1].classList.add('active');
+            } else if (currentFilter === 'crop') {
+                document.querySelectorAll('.stat-card')[2].classList.add('active');
+            } else {
+                document.querySelectorAll('.stat-card')[0].classList.add('active');
+            }
         }
 
         async function deleteFarmer(phone) {
-            if (!confirm(`Delete farmer ${phone}?`)) {
+            if (!confirm(`Delete farmer with phone ${phone}?`)) {
                 return;
             }
 
@@ -296,7 +517,7 @@
 
                 if (data.success) {
                     alert('✅ Farmer deleted successfully');
-                    loadFarmers(); // Reload table
+                    loadFarmers();
                 } else {
                     alert('❌ ' + data.error);
                 }

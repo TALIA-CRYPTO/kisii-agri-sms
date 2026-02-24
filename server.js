@@ -136,14 +136,20 @@ app.get('/admin', (req, res) => {
 app.get('/admin/prices', (req, res) => {
     res.json(prices);
 });
-
 app.post('/register', (req, res) => {
-    const { phone, crops } = req.body;
+    const { phone, name, crops } = req.body;
 
     if (!phone || !phone.startsWith('+254')) {
         return res.status(400).json({
             success: false,
             error: 'Valid phone number required (+254...)'
+        });
+    }
+
+    if (!name || name.trim().length < 2) {
+        return res.status(400).json({
+            success: false,
+            error: 'Farmer name is required'
         });
     }
 
@@ -155,9 +161,14 @@ app.post('/register', (req, res) => {
         });
     }
 
-    farmers.push({ phone, crops, registered: new Date() });
+    farmers.push({ 
+        phone, 
+        name: name.trim(),
+        crops, 
+        registered: new Date() 
+    });
     fs.writeFileSync('farmers.json', JSON.stringify(farmers, null, 2));
-    console.log('Farmer registered:', phone);
+    console.log('Farmer registered:', name, phone);
     res.json({ success: true, total: farmers.length });
 });
 

@@ -182,25 +182,20 @@ checkAuth();
         <button onclick="loadPrices()">Load Current Prices</button>
         <div id="price-result" class="result" style="display:none"></div>
     </div>
-    
     <div class="section">
-        <h2>Register New Farmer</h2>
-        <label>Phone Number:</label>
-        <input type="text" id="phone" placeholder="+254712345678">
-        
-        <label>Crops (comma separated):</label>
-        <input type="text" id="crops" placeholder="maize,beans">
-        
-        <br><button onclick="registerFarmer()">Register Farmer</button>
-        <div id="register-result" class="result" style="display:none"></div>
-    </div>
+    <h2>Register New Farmer</h2>
+    <label>Farmer Name:</label>
+    <input type="text" id="farmerName" placeholder="e.g., John Mwangi">
     
-    <div class="section">
-        <h2>Send SMS to All Farmers</h2>
-        <button onclick="sendSMS()">Send Price Update SMS Now</button>
-        <button onclick="loadFarmers()">View Registered Farmers</button>
-        <div id="sms-result" class="result" style="display:none"></div>
-    </div>
+    <label>Phone Number:</label>
+    <input type="text" id="phone" placeholder="+254712345678">
+    
+    <label>Crops (comma separated):</label>
+    <input type="text" id="crops" placeholder="maize,beans">
+    
+    <br><button onclick="registerFarmer()">Register Farmer</button>
+    <div id="register-result" class="result" style="display:none"></div>
+</div>
 
     <script>
         async function updatePrices() { const prices = {
@@ -236,24 +231,35 @@ checkAuth();
     document.getElementById('avocados').value = data.avocados || 0;
 }
            
-        
         async function registerFarmer() {
-            const phone = document.getElementById('phone').value;
-            const crops = document.getElementById('crops').value.split(',');
-            
-            const res = await fetch('/register', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ phone, crops })
-            });
-            
-            const data = await res.json();
-            document.getElementById('register-result').style.display = 'block';
-            document.getElementById('register-result').innerHTML = 
-                `✅ Farmer registered! Total farmers: ${data.total}`;
-            document.getElementById('phone').value = '';
-            document.getElementById('crops').value = '';
-        }
+    const name = document.getElementById('farmerName').value.trim();
+    const phone = document.getElementById('phone').value;
+    const crops = document.getElementById('crops').value.split(',');
+    
+    if (!name) {
+        alert('Please enter farmer name');
+        return;
+    }
+    
+    const res = await fetch('/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({ name, phone, crops })
+    });
+    
+    const data = await res.json();
+    document.getElementById('register-result').style.display = 'block';
+    if (data.success) {
+        document.getElementById('register-result').innerHTML = 
+            `✅ ${name} registered! Total farmers: ${data.total}`;
+        document.getElementById('farmerName').value = '';
+        document.getElementById('phone').value = '';
+        document.getElementById('crops').value = '';
+    } else {
+        document.getElementById('register-result').innerHTML = '❌ ' + data.error;
+    }
+}
         
         async function sendSMS() {
             if (!confirm('Send SMS to all farmers now?')) return;
