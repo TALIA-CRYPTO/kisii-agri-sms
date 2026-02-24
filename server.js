@@ -195,6 +195,44 @@ app.post('/delete-farmer', requireAuth, (req, res) => {
     console.log('Farmer deleted:', phone);
     res.json({ success: true, total: farmers.length });
 });
+// Edit/Update farmer (protected)
+app.post('/edit-farmer', requireAuth, (req, res) => {
+    const { oldPhone, phone, name, crops } = req.body;
+
+    const index = farmers.findIndex(f => f.phone === oldPhone);
+    
+    if (index === -1) {
+        return res.status(404).json({
+            success: false,
+            error: 'Farmer not found'
+        });
+    }
+
+    // Check if new phone number already exists (if phone changed)
+    if (phone !== oldPhone) {
+        const exists = farmers.find(f => f.phone === phone);
+        if (exists) {
+            return res.status(400).json({
+                success: false,
+                error: 'Phone number already registered to another farmer'
+            });
+        }
+    }
+
+    // Update farmer details
+    farmers[index] = {
+        ...farmers[index],
+        phone: phone || farmers[index].phone,
+        name: name || farmers[index].name,
+        crops: crops || farmers[index].crops,
+        lastUpdated: new Date()
+    };
+
+    fs.writeFileSync('farmers.json', JSON.stringify(farmers, null, 2));
+    
+    console.log('Farmer updated:', name, phone);
+    res.json({ success: true, farmer: farmers[index] });
+});
 
 
 app.post('/test-sms', async (req, res) => {

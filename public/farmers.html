@@ -371,19 +371,17 @@
                 
                 html += `
                     <tr>
-                        <td>${index + 1}</td>
-                        <td><strong>${name}</strong></td>
-                        <td>${farmer.phone}</td>
-                        <td>${Array.isArray(farmer.crops) ? farmer.crops.join(', ') : farmer.crops}</td>
-                        <td>${date} ${time}</td>
-                        <td>
-                            <button class="btn btn-info" onclick='viewDetails(${JSON.stringify(farmer)})'>
-                                👁️ View
-                            </button>
-                            <button class="delete-btn" onclick="deleteFarmer('${farmer.phone}')">
-                                🗑️ Delete
-                            </button>
-                        </td>
+                       <td>
+   			 <button class="btn btn-info" onclick='viewDetails(${JSON.stringify(farmer)})'>
+     			   👁️ View
+   				 </button>
+   				 <button class="btn" style="background: #f57c00; padding: 6px 12px; margin-left: 5px;" 						onclick='editFarmer(${JSON.stringify(farmer)})'>
+       					 ✏️ Edit
+   				 </button>
+   				 <button class="delete-btn" onclick="deleteFarmer('${farmer.phone}')">
+       					 🗑️ Delete
+    				</button>
+			</td>
                     </tr>
                 `;
             });
@@ -424,10 +422,15 @@
         }
 
         // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('farmerModal');
-            if (event.target == modal) {
+       window.onclick = function(event) {
+            const viewModal = document.getElementById('farmerModal');
+            const editModal = document.getElementById('editModal');
+            
+            if (event.target == viewModal) {
                 closeModal();
+            }
+            if (event.target == editModal) {
+                closeEditModal();
             }
         }
 
@@ -525,6 +528,241 @@
                 alert('❌ Error deleting farmer');
             }
         }
+function editFarmer(farmer) {
+            document.getElementById('editOldPhone').value = farmer.phone;
+            document.getElementById('editName').value = farmer.name || '';
+            document.getElementById('editPhone').value = farmer.phone;
+            
+            const crops = Array.isArray(farmer.crops) 
+                ? farmer.crops.join(', ') 
+                : farmer.crops;
+            document.getElementById('editCrops').value = crops;
+            
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editResult').style.display = 'none';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        async function saveEdit() {
+            const oldPhone = document.getElementById('editOldPhone').value;
+            const name = document.getElementById('editName').value.trim();
+            const phone = document.getElementById('editPhone').value.trim();
+            const cropsInput = document.getElementById('editCrops').value.trim();
+            const resultDiv = document.getElementById('editResult');
+
+            // Validation
+            if (!name) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+                resultDiv.textContent = '❌ Name is required';
+                return;
+            }
+
+            if (!phone.startsWith('+254') || phone.length !== 13) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+                resultDiv.textContent = '❌ Invalid phone number format (+254XXXXXXXXX)';
+                return;
+            }
+
+            if (!cropsInput) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+                resultDiv.textContent = '❌ Crops are required';
+                return;
+            }
+
+            const crops = cropsInput.split(',').map(c => c.trim());
+
+            try {
+                const res = await fetch('/edit-farmer', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({ oldPhone, phone, name, crops })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    resultDiv.style.display = 'block';
+                    resultDiv.style.background = '#d4edda';
+                    resultDiv.style.color = '#155724';
+                    resultDiv.textContent = '✅ Farmer updated successfully!';
+                    
+                    setTimeout(() => {
+                        closeEditModal();
+                        loadFarmers(); // Reload the table
+                    }, 1500);
+                } else {
+                    resultDiv.style.display = 'block';
+                    resultDiv.style.background = '#f8d7da';
+                    resultDiv.style.color = '#721c24';
+                    resultDiv.textContent = '❌ ' + data.error;
+                }
+            } catch (error) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+                resultDiv.textContent = '❌ Error updating farmer';
+            }
+        }
+
+        // Update window.onclick to handle both modals
+        window.onclick = function(event) {
+            const viewModal = document.getElementById('farmerModal');
+            const editModal = document.getElementById('editModal');
+            
+            if (event.target == viewModal) {
+                closeModal();
+            }
+            if (event.target == editModal) {
+                closeEditModal();
+            }
+        }
+function editFarmer(farmer) {
+            document.getElementById('editOldPhone').value = farmer.phone;
+            document.getElementById('editName').value = farmer.name || '';
+            document.getElementById('editPhone').value = farmer.phone;
+            
+            const crops = Array.isArray(farmer.crops) 
+                ? farmer.crops.join(', ') 
+                : farmer.crops;
+            document.getElementById('editCrops').value = crops;
+            
+            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editResult').style.display = 'none';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        async function saveEdit() {
+            const oldPhone = document.getElementById('editOldPhone').value;
+            const name = document.getElementById('editName').value.trim();
+            const phone = document.getElementById('editPhone').value.trim();
+            const cropsInput = document.getElementById('editCrops').value.trim();
+            const resultDiv = document.getElementById('editResult');
+
+            // Validation
+            if (!name) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+                resultDiv.textContent = '❌ Name is required';
+                return;
+            }
+
+            if (!phone.startsWith('+254') || phone.length !== 13) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+                resultDiv.textContent = '❌ Invalid phone number format (+254XXXXXXXXX)';
+                return;
+            }
+
+            if (!cropsInput) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+                resultDiv.textContent = '❌ Crops are required';
+                return;
+            }
+
+            const crops = cropsInput.split(',').map(c => c.trim());
+
+            try {
+                const res = await fetch('/edit-farmer', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify({ oldPhone, phone, name, crops })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    resultDiv.style.display = 'block';
+                    resultDiv.style.background = '#d4edda';
+                    resultDiv.style.color = '#155724';
+                    resultDiv.textContent = '✅ Farmer updated successfully!';
+                    
+                    setTimeout(() => {
+                        closeEditModal();
+                        loadFarmers();
+                    }, 1500);
+                } else {
+                    resultDiv.style.display = 'block';
+                    resultDiv.style.background = '#f8d7da';
+                    resultDiv.style.color = '#721c24';
+                    resultDiv.textContent = '❌ ' + data.error;
+                }
+            } catch (error) {
+                resultDiv.style.display = 'block';
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.style.color = '#721c24';
+                resultDiv.textContent = '❌ Error updating farmer';
+            }
+        }
+    </script>
     </script>
 </body>
+<!-- Modal for Editing Farmer -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Farmer Details</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <div style="padding: 20px;">
+                <input type="hidden" id="editOldPhone">
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c5f2d;">
+                        Farmer Name:
+                    </label>
+                    <input type="text" id="editName" 
+                           style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px;">
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c5f2d;">
+                        Phone Number:
+                    </label>
+                    <input type="tel" id="editPhone" 
+                           style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px;">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 5px; color: #2c5f2d;">
+                        Crops (comma separated):
+                    </label>
+                    <input type="text" id="editCrops" 
+                           style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px; font-size: 16px;"
+                           placeholder="e.g., maize, beans, tomatoes">
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" style="flex: 1;" onclick="saveEdit()">
+                        💾 Save Changes
+                    </button>
+                    <button class="btn" style="flex: 1; background: #999;" onclick="closeEditModal()">
+                        Cancel
+                    </button>
+                </div>
+
+                <div id="editResult" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
 </html>
