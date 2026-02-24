@@ -294,14 +294,23 @@ Avocados: ${prices.avocados || 15} KES/piece
 // ==================
 // PROTECTED ROUTES
 // ==================
-
 app.post('/admin/prices', requireAuth, (req, res) => {
-    prices = req.body;
-    prices.lastUpdated = new Date().toISOString(); // Add timestamp
+    // Convert string values to numbers
+    prices = {
+        maize: parseInt(req.body.maize) || 0,
+        beans: parseInt(req.body.beans) || 0,
+        tomatoes: parseInt(req.body.tomatoes) || 0,
+        bananas: parseInt(req.body.bananas) || 0,
+        potatoes: parseInt(req.body.potatoes) || 0,
+        avocados: parseInt(req.body.avocados) || 0,
+        lastUpdated: new Date().toISOString()
+    };
+    
     fs.writeFileSync('prices.json', JSON.stringify(prices, null, 2));
     console.log('Prices updated:', prices);
     res.json({ success: true, prices });
 });
+
 app.post('/send-sms', requireAuth, async (req, res) => {
     const today = new Date().toLocaleDateString('en-GB');
     const message = `Kisii Sokoni (${today}):

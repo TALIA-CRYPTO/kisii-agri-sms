@@ -160,24 +160,23 @@ checkAuth();
     
     <div class="section">
         <h2>Update Market Prices</h2>
+	<label>Maize (KES/kg):</label>
+	<input type="number" id="maize" placeholder="45" min="0" step="1">
+
+	<label>Beans (KES/kg):</label>
+	<input type="number" id="beans" placeholder="80" min="0" step="1">
+
+	<label>Tomatoes (KES/kg):</label>
+	<input type="number" id="tomatoes" placeholder="60" min="0" step="1">
+
 	<label>Bananas (KES/kg):</label>
-	<input type="number" id="bananas" placeholder="30" step="0.01">
+	<input type="number" id="bananas" placeholder="30" min="0" step="1">
 
 	<label>Potatoes (KES/kg):</label>
-	<input type="number" id="potatoes" placeholder="40" step="0.01">
+	<input type="number" id="potatoes" placeholder="40" min="0" step="1">
 
 	<label>Avocados (KES/piece):</label>
-	<input type="number" id="avocados" placeholder="15" step="0.01">
-
-        <label>Maize (KES/kg):</label>
-        <input type="number" id="maize" placeholder="45">
-        
-        <label>Beans (KES/kg):</label>
-        <input type="number" id="beans" placeholder="80">
-        
-        <label>Tomatoes (KES/kg):</label>
-        <input type="number" id="tomatoes" placeholder="60">
-        
+	<input type="number" id="avocados" placeholder="15" min="0" step="1">        
         <br><button onclick="updatePrices()">Update Prices</button>
         <button onclick="loadPrices()">Load Current Prices</button>
         <div id="price-result" class="result" style="display:none"></div>
@@ -198,18 +197,20 @@ checkAuth();
 </div>
 
     <script>
-        async function updatePrices() { const prices = {
-        maize: document.getElementById('maize').value,
-        beans: document.getElementById('beans').value,
-        tomatoes: document.getElementById('tomatoes').value,
-        bananas: document.getElementById('bananas').value,
-        potatoes: document.getElementById('potatoes').value,
-        avocados: document.getElementById('avocados').value
+       async function updatePrices() {
+    const prices = {
+        maize: parseInt(document.getElementById('maize').value) || 0,
+        beans: parseInt(document.getElementById('beans').value) || 0,
+        tomatoes: parseInt(document.getElementById('tomatoes').value) || 0,
+        bananas: parseInt(document.getElementById('bananas').value) || 0,
+        potatoes: parseInt(document.getElementById('potatoes').value) || 0,
+        avocados: parseInt(document.getElementById('avocados').value) || 0
     };
     
     const res = await fetch('/admin/prices', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
         body: JSON.stringify(prices)
     });
     
@@ -221,14 +222,23 @@ checkAuth();
             
         
         async function loadPrices() {
-	 const res = await fetch('/admin/prices');
-    const data = await res.json();
-    document.getElementById('maize').value = data.maize || 0;
-    document.getElementById('beans').value = data.beans || 0;
-    document.getElementById('tomatoes').value = data.tomatoes || 0;
-    document.getElementById('bananas').value = data.bananas || 0;
-    document.getElementById('potatoes').value = data.potatoes || 0;
-    document.getElementById('avocados').value = data.avocados || 0;
+    try {
+        const res = await fetch('/admin/prices', {
+            credentials: 'include'
+        });
+        const data = await res.json();
+        
+        document.getElementById('maize').value = parseInt(data.maize) || 0;
+        document.getElementById('beans').value = parseInt(data.beans) || 0;
+        document.getElementById('tomatoes').value = parseInt(data.tomatoes) || 0;
+        document.getElementById('bananas').value = parseInt(data.bananas) || 0;
+        document.getElementById('potatoes').value = parseInt(data.potatoes) || 0;
+        document.getElementById('avocados').value = parseInt(data.avocados) || 0;
+        
+        console.log('Prices loaded:', data);
+    } catch (error) {
+        console.error('Error loading prices:', error);
+    }
 }
            
         async function registerFarmer() {
