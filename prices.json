@@ -1,5 +1,9 @@
 {
-  "maize": "045",
-  "beans": "0120",
-  "tomatoes": "050"
+  "maize": 45,
+  "beans": 120,
+  "tomatoes": 50,
+  "bananas": 30,
+  "potatoes": 40,
+  "avocados": 15,
+  "lastUpdated": null
 }
